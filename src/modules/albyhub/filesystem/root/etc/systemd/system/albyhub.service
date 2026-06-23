@@ -1,0 +1,23 @@
+[Unit]
+Description=Alby Hub
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User=albyhub
+ExecStart=/opt/albyhub/bin/albyhub
+# Cap CPU so the wallet never starves the rest of a small Pi
+CPUQuota=90%
+
+Environment="PORT=80"
+Environment="WORK_DIR=/opt/albyhub/data"
+Environment="LDK_ESPLORA_SERVER=https://electrs.getalbypro.com"
+# Empty gossip source = no Lightning network graph held in RAM (the lean config
+# that lets LDK run in ~180MB on a 512MB Pi).
+Environment="LDK_GOSSIP_SOURCE="
+
+[Install]
+WantedBy=multi-user.target

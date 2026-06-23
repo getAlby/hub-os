@@ -1,0 +1,15 @@
+# Pinned Alby Hub release baked into the image (reproducible build).
+# Bump this to ship a new image; users can also self-update via /opt/albyhub/update.sh.
+export ALBYHUB_VERSION="v1.23.0"
+export ALBYHUB_ARCH="aarch64"
+
+# Pinned GitHub release assets (verifiable + reproducible, unlike the "latest" URL).
+export ALBYHUB_RELEASE_BASE="https://github.com/getAlby/hub/releases/download/${ALBYHUB_VERSION}"
+export ALBYHUB_ASSET="albyhub-Server-Linux-${ALBYHUB_ARCH}.tar.bz2"
+# Release signing pubkeys, pinned to the same tag (see hub repo scripts/keys/).
+export ALBYHUB_KEYS="rolznz im-adithya"
+
+export ALBYHUB_HOME="/opt/albyhub"
+export ALBYHUB_USER="albyhub"
+export ALBYHUB_SWAP_MB="1024"
+export ALBYHUB_HOSTNAME="albyhub"

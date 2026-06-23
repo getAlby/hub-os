@@ -1,0 +1,7 @@
+# build artifacts
+workspace/
+*.img
+*.img.xz
+*.img.zip
+*.sha256
+build.log

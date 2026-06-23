@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+# Bakes Alby Hub into the image. Runs inside the image chroot at build time.
+# Mirrors getAlby/hub scripts/pi-aarch64/install.sh, adapted to be chroot-safe
+# (enable services instead of starting them; no interactive verify prompt).
+set -x
+set -e
+export LC_ALL=C
+
+source /common.sh
+install_cleanup_trap
+
+# Copy filesystem overlays (systemd unit, sysctl, ld.so.conf) into the image
+unpack /filesystem/root /
+
+# Module config (ALBYHUB_* vars) is sourced by CustomPiOS before this script.
+
+# --- dependencies ---
+apt-get update
+apt-get install -y --no-install-recommends bzip2 ca-certificates gnupg avahi-daemon libcap2-bin
+
+# --- dedicated, unprivileged service user ---
+if ! id -u "$ALBYHUB_USER" >/dev/null 2>&1; then
+  adduser --system --group --home "$ALBYHUB_HOME" --no-create-home "$ALBYHUB_USER"
+fi
+
+# --- download + GPG-verify + extract the pinned release (reproducible) ---
+mkdir -p "$ALBYHUB_HOME"
+cd "$ALBYHUB_HOME"
+
+wget -q "$ALBYHUB_RELEASE_BASE/$ALBYHUB_ASSET"
+wget -q -O manifest.txt     "$ALBYHUB_RELEASE_BASE/manifest.txt"
+wget -q -O manifest.txt.asc "$ALBYHUB_RELEASE_BASE/manifest.txt.asc"
+
+export GNUPGHOME="$(mktemp -d)"
+for k in $ALBYHUB_KEYS; do
+  wget -q -O "/tmp/$k.asc" "https://raw.githubusercontent.com/getAlby/hub/${ALBYHUB_VERSION}/scripts/keys/$k.asc"
+  gpg --batch --import "/tmp/$k.asc"
+done
+gpg --batch --verify manifest.txt.asc manifest.txt
+
+expected="$(grep "$ALBYHUB_ASSET" manifest.txt | awk '{print $1}')"
+actual="$(sha256sum "$ALBYHUB_ASSET" | awk '{print $1}')"
+if [ -z "$expected" ] || [ "$expected" != "$actual" ]; then
+  echo "ERROR: checksum mismatch for $ALBYHUB_ASSET (expected '$expected', got '$actual')" >&2
+  exit 1
+fi
+
+tar -xf "$ALBYHUB_ASSET"
+rm -f "$ALBYHUB_ASSET" manifest.txt manifest.txt.asc
+rm -rf "$GNUPGHOME"
+
+# --- bind on :80 without root, make the LDK lib discoverable ---
+setcap CAP_NET_BIND_SERVICE=+eip "$ALBYHUB_HOME/bin/albyhub"
+ldconfig   # picks up /etc/ld.so.conf.d/albyhub.conf from the overlay
+
+# --- data dir + ownership ---
+mkdir -p "$ALBYHUB_HOME/data"
+chown -R "$ALBYHUB_USER:$ALBYHUB_USER" "$ALBYHUB_HOME"
+
+# --- reclaim RAM on headless Pi (frees ~48MB) ---
+CONFIG_TXT=/boot/firmware/config.txt
+[ -f "$CONFIG_TXT" ] || CONFIG_TXT=/boot/config.txt
+if ! grep -q '^gpu_mem=16' "$CONFIG_TXT"; then
+  printf '\n[all]\ngpu_mem=16\n' >> "$CONFIG_TXT"
+fi
+
+# --- swap as crash insurance (RAM is fine, but cushion sync spikes) ---
+if [ -f /etc/dphys-swapfile ]; then
+  sed -i "s/^#\?CONF_SWAPSIZE=.*/CONF_SWAPSIZE=${ALBYHUB_SWAP_MB}/" /etc/dphys-swapfile
+  sed -i "s/^#\?CONF_MAXSWAP=.*/CONF_MAXSWAP=${ALBYHUB_SWAP_MB}/" /etc/dphys-swapfile
+fi
+
+# --- default hostname so albyhub.local works out of the box (Imager can override) ---
+echo "$ALBYHUB_HOSTNAME" > /etc/hostname
+sed -i "s/127.0.1.1.*/127.0.1.1\t${ALBYHUB_HOSTNAME}/" /etc/hosts || true
+
+# --- enable services (start happens on first boot, not in chroot) ---
+systemctl_if_exists enable albyhub.service
+systemctl_if_exists enable avahi-daemon.service
