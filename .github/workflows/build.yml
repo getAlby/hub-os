@@ -50,9 +50,9 @@ jobs:
           echo "built: $OUT"
           sudo xz -T0 -9 "$OUT"
           sudo sha256sum "${OUT}.xz" | sudo tee "${OUT}.xz.sha256"
-          sudo chown "$(id -u):$(id -g)" "${OUT}.xz" "${OUT}.xz.sha256"
           mkdir -p dist
-          mv "${OUT}.xz" "${OUT}.xz.sha256" dist/
+          sudo mv "${OUT}.xz" "${OUT}.xz.sha256" dist/
+          sudo chown -R "$(id -u):$(id -g)" dist
       - uses: actions/upload-artifact@v4
         with:
           name: hub-os-image
