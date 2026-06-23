@@ -7,11 +7,9 @@ Lightning) with **zero manual install** — flash, boot, open
 ## Why
 
 Manually installing Alby Hub on a Pi means SSH + `curl | bash` + a signature
-prompt + systemd setup, and Raspberry Pi Imager's newer cloud-init path can
-silently drop WiFi/SSH config. This image bakes all of that in and stays on the
-stable Bookworm first-boot path, so onboarding is just:
+prompt + systemd setup. This image bakes all of that in, so onboarding is just:
 
-1. Flash with Raspberry Pi Imager → pick **Alby Hub**, set WiFi + password.
+1. Flash the image with **Raspberry Pi Imager 2.0+** (“Use custom”), set WiFi + password.
 2. Insert the card, power on, wait ~2 min.
 3. Open `http://albyhub.local`, set a password, save your seed, open a channel.
 
@@ -30,9 +28,10 @@ No terminal. Tested target: Raspberry Pi Zero 2 W (512 MB) and up.
 
 ## What Imager handles at flash time (not baked)
 
-WiFi credentials, SSH enable/key, user/password, locale/timezone, hostname.
-The image keeps the stock Bookworm firstboot intact so Imager's customization
-screen works.
+WiFi credentials, SSH enable/key, user/password, locale/timezone, hostname —
+applied on first boot. **Use Raspberry Pi Imager 2.0 or newer** — older versions
+don't reliably apply customization to current Raspberry Pi OS (cloud-init), which
+silently drops the SSH/WiFi settings.
 
 ## Build
 
@@ -76,6 +75,6 @@ app auto-updater off entirely.
 
 ## Status
 
-Scaffold. Before first publish: add the CustomPiOS submodule, confirm release
-asset names (`manifest.txt` / `manifest.txt.asc`) for the pinned tag, and run a
-flash test on a Zero 2 W + a Pi 4/5.
+Builds green in CI and boots on a Raspberry Pi Zero 2 W (setup screen serves on
+`:80`). Flash with **Raspberry Pi Imager 2.0+** so first-boot customization
+applies. Not yet tagged as a release.
