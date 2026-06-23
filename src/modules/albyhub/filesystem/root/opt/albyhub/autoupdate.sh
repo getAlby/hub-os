@@ -61,10 +61,13 @@ if systemctl is-active --quiet albyhub; then
   echo "updated to $latest OK"; rm -rf "$HOME_DIR/bin.bak" "$HOME_DIR/lib.bak"
 else
   echo "service failed after update; ROLLING BACK to $installed"
+  systemctl stop albyhub 2>/dev/null || true
+  systemctl reset-failed albyhub 2>/dev/null || true   # clear start-limit tripped by the crash-looping bad binary
   rm -rf "$HOME_DIR/bin" "$HOME_DIR/lib"
   mv "$HOME_DIR/bin.bak" "$HOME_DIR/bin"; mv "$HOME_DIR/lib.bak" "$HOME_DIR/lib"
-  setcap CAP_NET_BIND_SERVICE=+eip "$HOME_DIR/bin/albyhub"; ldconfig
+  setcap CAP_NET_BIND_SERVICE=+eip "$HOME_DIR/bin/albyhub" 2>/dev/null || true; ldconfig
   echo "$installed" > "$HOME_DIR/VERSION"; chown -R albyhub:albyhub "$HOME_DIR/bin" "$HOME_DIR/lib" "$HOME_DIR/VERSION"
+  systemctl reset-failed albyhub 2>/dev/null || true
   systemctl start albyhub
   exit 1
 fi
