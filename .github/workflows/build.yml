@@ -20,7 +20,7 @@ jobs:
       - name: Install build deps
         run: |
           sudo apt-get update
-          sudo apt-get install -y coreutils p7zip-full qemu-user-static zip unzip xz-utils kpartx
+          sudo apt-get install -y coreutils p7zip-full qemu-user-static zip unzip xz-utils kpartx python3-git python3-yaml
           docker run --privileged --rm tonistiigi/binfmt --install arm64
 
       - name: Download base Raspberry Pi OS Lite (arm64)
