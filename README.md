@@ -62,6 +62,22 @@ Edit `src/modules/albyhub/config` — pinned version, swap size, user, hostname.
 Bump `ALBYHUB_VERSION` to ship a new image; users can also self-update in place
 via `/opt/albyhub/update.sh`.
 
+## Updates
+
+The image keeps itself current with **no SSH**:
+
+- **OS security patches** apply automatically (`unattended-upgrades`).
+- **Alby Hub** is checked weekly and updated automatically (GPG + SHA256 verified,
+  with rollback) — but **only if auto-unlock is enabled**, since an update restarts
+  the hub and would otherwise leave the wallet locked. The updater asks the hub's
+  own `/api/info` and skips the update when auto-unlock is off.
+
+So for fully hands-off updates, **enable auto-unlock in Alby Hub → Settings**.
+Trade-off: the unlock secret is then stored on the device (your seed phrase
+remains your backup). With manual unlock, update when the hub shows
+"Update Available". Place a file at `/opt/albyhub/disable-autoupdate` to turn the
+app auto-updater off entirely.
+
 ## Status
 
 Scaffold. Before first publish: add the CustomPiOS submodule, confirm release
