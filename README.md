@@ -1,7 +1,7 @@
 # Hub OS
 
 A ready-to-flash Raspberry Pi image that runs **Alby Hub** (self-custodial
-Lightning, LDK backend) with **zero manual install** — flash, boot, open
+Lightning) with **zero manual install** — flash, boot, open
 `http://albyhub.local`. Built with [CustomPiOS](https://github.com/guysoft/CustomPiOS).
 
 ## Why
@@ -19,11 +19,12 @@ No terminal. Tested target: Raspberry Pi Zero 2 W (512 MB) and up.
 
 ## What's baked in (`src/modules/albyhub`)
 
-- Alby Hub `aarch64` binary + `libldk_node.so` in `/opt/albyhub`, **GPG-verified**
-  at build time against a pinned release (`ALBYHUB_VERSION`).
+- Alby Hub `aarch64` binary + runtime libraries in `/opt/albyhub`, **GPG-verified**
+  at build time against a pinned release (`ALBYHUB_VERSION`). Alby Hub supports
+  multiple Lightning backends — you choose one during first-boot setup.
 - `albyhub.service` (systemd, runs as dedicated `albyhub` user, port 80,
-  lean LDK config: remote Esplora, no in-RAM network graph).
-- `setcap` for port 80, `ld.so.conf.d` entry for the LDK lib.
+  with a low-resource default configuration).
+- Port-80 binding via systemd `AmbientCapabilities`; `ld.so.conf.d` entry for the bundled libraries.
 - `gpu_mem=16` (frees ~48 MB) and `vm.swappiness=10` + 1 GB swap.
 - `avahi-daemon` for `albyhub.local`; default hostname `albyhub`.
 
