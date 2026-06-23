@@ -24,7 +24,7 @@ jobs:
           docker run --privileged --rm tonistiigi/binfmt --install arm64
 
       - name: Build image
-        run: sudo bash ./build.sh
+        run: sudo bash ./build.sh -d
 
       - name: Compress + checksum
         run: |

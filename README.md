@@ -37,7 +37,7 @@ screen works.
 
 ```bash
 git submodule update --init --recursive   # pulls src/CustomPiOS
-sudo bash ./build.sh                       # emits workspace/*.img
+sudo bash ./build.sh -d                    # -d downloads the base image; emits workspace/*.img
 ```
 
 CI (`.github/workflows/build.yml`) builds on tag push and publishes
