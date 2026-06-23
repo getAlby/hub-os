@@ -39,20 +39,25 @@ jobs:
       - name: Build image
         run: sudo bash ./build.sh
 
-      - name: Package image (rename + compress + checksum)
+      - name: Package image + Imager manifest
         run: |
           set -euo pipefail
-          VER=$(bash -c 'source src/config; echo $DIST_VERSION')
           IMG=$(sudo find src/workspace -maxdepth 1 -name '*.img' | head -1)
           test -n "$IMG" || { echo "no .img produced"; exit 1; }
-          OUT="src/workspace/HubOS-${VER}-arm64.img"
+          OUT="src/workspace/HubOS-arm64.img"
           sudo mv "$IMG" "$OUT"
-          echo "built: $OUT"
+          EXTRACT_SHA=$(sudo sha256sum "$OUT" | awk '{print $1}')
+          EXTRACT_SIZE=$(sudo stat -c %s "$OUT")
+          echo "built: $OUT ($EXTRACT_SIZE bytes)"
           sudo xz -T0 -9 "$OUT"
-          sudo sha256sum "${OUT}.xz" | sudo tee "${OUT}.xz.sha256"
+          DL_SHA=$(sudo sha256sum "${OUT}.xz" | awk '{print $1}')
+          DL_SIZE=$(sudo stat -c %s "${OUT}.xz")
+          sudo chown "$(id -u):$(id -g)" "${OUT}.xz"
           mkdir -p dist
-          sudo mv "${OUT}.xz" "${OUT}.xz.sha256" dist/
-          sudo chown -R "$(id -u):$(id -g)" dist
+          mv "${OUT}.xz" dist/
+          echo "$DL_SHA  HubOS-arm64.img.xz" > dist/HubOS-arm64.img.xz.sha256
+          python3 scripts/gen-oslist.py "$EXTRACT_SHA" "$EXTRACT_SIZE" "$DL_SHA" "$DL_SIZE" > dist/os-list.json
+          echo "=== dist ==="; ls -la dist/; echo "=== os-list.json ==="; cat dist/os-list.json
       - uses: actions/upload-artifact@v4
         with:
           name: hub-os-image
