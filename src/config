@@ -10,4 +10,8 @@ export RPI_IMAGER_WEBSITE="https://albyhub.com"
 export BASE_BOARD=raspberrypiarm64
 export BASE_ARCH=arm64
 
+# Security: SSH off by default (the wallet UI is on :80, no SSH needed).
+# Users enable SSH + set a password in Raspberry Pi Imager when they want a console.
+export BASE_SSH_ENABLE=no
+
 export MODULES="base(network,albyhub)"
