@@ -23,13 +23,27 @@ jobs:
           sudo apt-get install -y coreutils p7zip-full qemu-user-static zip unzip xz-utils kpartx
           docker run --privileged --rm tonistiigi/binfmt --install arm64
 
+      - name: Download base Raspberry Pi OS Lite (arm64)
+        run: |
+          set -euo pipefail
+          mkdir -p src/image-raspberrypiarm64
+          BASEDIR=$(curl -fsSL https://downloads.raspberrypi.org/raspios_lite_arm64/images/ \
+            | grep -oE 'raspios_lite_arm64-[0-9-]+' | sort -u | tail -1)
+          FILE=$(curl -fsSL "https://downloads.raspberrypi.org/raspios_lite_arm64/images/$BASEDIR/" \
+            | grep -oE '[0-9-]+-raspios-[a-z]+-arm64-lite\.img\.xz' | head -1)
+          echo "Base image: $BASEDIR/$FILE"
+          curl -fL --retry 3 -o "src/image-raspberrypiarm64/$FILE" \
+            "https://downloads.raspberrypi.org/raspios_lite_arm64/images/$BASEDIR/$FILE"
+          ls -la src/image-raspberrypiarm64/
+
       - name: Build image
-        run: sudo bash ./build.sh -d
+        run: sudo bash ./build.sh
 
       - name: Compress + checksum
         run: |
           IMG=$(find . -path ./src/CustomPiOS -prune -o -name '*.img' -print | head -1)
           test -n "$IMG" || { echo "no .img produced"; exit 1; }
+          echo "built: $IMG"
           sudo xz -T0 -9 "$IMG"
           sha256sum "${IMG}.xz" | tee "${IMG}.xz.sha256"
 

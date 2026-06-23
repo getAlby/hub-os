@@ -6,7 +6,7 @@ export RPI_IMAGER_NAME="Alby Hub"
 export RPI_IMAGER_DESCRIPTION="Self-custodial Lightning wallet on your Pi. No full node, no manual install."
 export RPI_IMAGER_WEBSITE="https://albyhub.com"
 
-# Official Raspberry Pi OS Lite 64-bit (Bookworm) base
+# Official Raspberry Pi OS Lite 64-bit (latest) base
 export BASE_BOARD=raspberrypiarm64
 export BASE_ARCH=arm64
 
