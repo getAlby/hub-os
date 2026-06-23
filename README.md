@@ -45,16 +45,11 @@ CI (`.github/workflows/build.yml`) builds on tag push and publishes
 
 ## Distribution
 
-Host `docs/os-list.json` and point users at it so the image appears inside
-Raspberry Pi Imager:
-
-```bash
-rpi-imager --repo https://getalby.github.io/hub-os/os-list.json
-```
-
-(or ship a clickable `.rpi-imager-manifest`). `init_format: systemd` is declared
-so Imager applies customization correctly. Fill in the two sha256 fields from
-the release artifacts.
+Download the latest `HubOS-<ver>-arm64.img.xz` from the
+[GitHub Releases](https://github.com/getAlby/hub-os/releases), then flash it with
+**Raspberry Pi Imager** ("Use custom") — or any flasher (Etcher, `dd`). Set your
+WiFi + hostname in Imager's customisation, write, boot, and open
+`http://albyhub.local`.
 
 ## Configuration
 
