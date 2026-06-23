@@ -18,6 +18,18 @@ installed=$(cat "$HOME_DIR/VERSION" 2>/dev/null || echo "")
 [ "$latest" = "$installed" ] && { echo "up to date ($installed)"; exit 0; }
 echo "update available: ${installed:-unknown} -> $latest"
 
+# GATE: only swap the binary if the wallet will come back UNLOCKED after restart.
+# The hub's public /api/info reports whether auto-unlock is enabled. If it's off,
+# a restart would leave the node locked & offline, so we skip (and the user can
+# update manually or enable auto-unlock). OS security upgrades are unaffected.
+autounlock=$(curl -fsS --max-time 10 http://localhost/api/info 2>/dev/null \
+  | grep -oE '"autoUnlockPasswordEnabled":[[:space:]]*(true|false)' | grep -oE 'true|false' | head -1)
+if [ "$autounlock" != "true" ]; then
+  echo "skipping: auto-unlock is OFF (got '${autounlock:-unknown}') — an update would lock the wallet. Update manually or enable auto-unlock."
+  exit 0
+fi
+echo "auto-unlock enabled; proceeding with update"
+
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT; cd "$tmp"
 base="https://github.com/getAlby/hub/releases/download/$latest"
 curl -fL -o "$ASSET" "$base/$ASSET"
