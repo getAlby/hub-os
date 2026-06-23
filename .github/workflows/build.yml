@@ -52,9 +52,9 @@ jobs:
           sudo xz -T0 -9 "$OUT"
           DL_SHA=$(sudo sha256sum "${OUT}.xz" | awk '{print $1}')
           DL_SIZE=$(sudo stat -c %s "${OUT}.xz")
-          sudo chown "$(id -u):$(id -g)" "${OUT}.xz"
           mkdir -p dist
-          mv "${OUT}.xz" dist/
+          sudo mv "${OUT}.xz" dist/
+          sudo chown -R "$(id -u):$(id -g)" dist
           echo "$DL_SHA  HubOS-arm64.img.xz" > dist/HubOS-arm64.img.xz.sha256
           python3 scripts/gen-oslist.py "$EXTRACT_SHA" "$EXTRACT_SIZE" "$DL_SHA" "$DL_SIZE" > dist/os-list.json
           echo "=== dist ==="; ls -la dist/; echo "=== os-list.json ==="; cat dist/os-list.json
