@@ -39,14 +39,18 @@ jobs:
       - name: Build image
         run: sudo bash ./build.sh
 
-      - name: Compress + checksum
+      - name: Package image (rename + compress + checksum)
         run: |
-          IMG=$(find . -path ./src/CustomPiOS -prune -o -name '*.img' -print | head -1)
+          set -euo pipefail
+          VER=$(bash -c 'source src/config; echo $DIST_VERSION')
+          IMG=$(sudo find src/workspace -maxdepth 1 -name '*.img' | head -1)
           test -n "$IMG" || { echo "no .img produced"; exit 1; }
-          echo "built: $IMG"
-          sudo xz -T0 -9 "$IMG"
-          sha256sum "${IMG}.xz" | tee "${IMG}.xz.sha256"
-
+          OUT="src/workspace/HubOS-${VER}-arm64.img"
+          sudo mv "$IMG" "$OUT"
+          echo "built: $OUT"
+          sudo xz -T0 -9 "$OUT"
+          sudo sha256sum "${OUT}.xz" | sudo tee "${OUT}.xz.sha256"
+          sudo chown "$(id -u):$(id -g)" "${OUT}.xz" "${OUT}.xz.sha256"
       - uses: actions/upload-artifact@v4
         with:
           name: hub-os-image
