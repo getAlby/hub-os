@@ -16,7 +16,7 @@ unpack /filesystem/root /
 
 # --- dependencies ---
 apt-get update
-apt-get install -y --no-install-recommends bzip2 ca-certificates gnupg avahi-daemon libcap2-bin
+apt-get install -y --no-install-recommends bzip2 ca-certificates gnupg avahi-daemon libcap2-bin unattended-upgrades
 
 # --- dedicated, unprivileged service user ---
 if ! id -u "$ALBYHUB_USER" >/dev/null 2>&1; then
@@ -46,6 +46,12 @@ if [ -z "$expected" ] || [ "$expected" != "$actual" ]; then
 fi
 
 tar -xf "$ALBYHUB_ASSET"
+
+# vendor signing keys + record version so the weekly auto-updater can verify releases
+mkdir -p "$ALBYHUB_HOME/keys"
+for k in $ALBYHUB_KEYS; do cp "/tmp/$k.asc" "$ALBYHUB_HOME/keys/"; done
+echo "$ALBYHUB_VERSION" > "$ALBYHUB_HOME/VERSION"
+
 rm -f "$ALBYHUB_ASSET" manifest.txt manifest.txt.asc
 rm -rf "$GNUPGHOME"
 
@@ -74,6 +80,10 @@ fi
 echo "$ALBYHUB_HOSTNAME" > /etc/hostname
 sed -i "s/127.0.1.1.*/127.0.1.1\t${ALBYHUB_HOSTNAME}/" /etc/hosts || true
 
+# --- auto-update: make the weekly updater executable ---
+chmod +x "$ALBYHUB_HOME/autoupdate.sh"
+
 # --- enable services (start happens on first boot, not in chroot) ---
 systemctl_if_exists enable albyhub.service
 systemctl_if_exists enable avahi-daemon.service
+systemctl_if_exists enable albyhub-update.timer
