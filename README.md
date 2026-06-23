@@ -46,7 +46,7 @@ CI (`.github/workflows/build.yml`) builds on tag push and publishes
 ## Distribution
 
 Download the latest `HubOS-<ver>-arm64.img.xz` from the
-[GitHub Releases](https://github.com/getAlby/hub-os/releases), then flash it with
+[latest GitHub release](https://github.com/getAlby/hub-os/releases/latest), then flash it with
 **Raspberry Pi Imager** ("Use custom") — or any flasher (Etcher, `dd`). Set your
 WiFi + hostname in Imager's customisation, write, boot, and open
 `http://albyhub.local`.
