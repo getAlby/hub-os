@@ -11,24 +11,27 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Enable arm binfmt (chroot for arm64)
-        run: docker run --privileged --rm tonistiigi/binfmt --install arm64
+      - name: Install build deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y coreutils p7zip-full qemu-user-static zip unzip xz-utils kpartx
+          docker run --privileged --rm tonistiigi/binfmt --install arm64
 
       - name: Build image
         run: sudo bash ./build.sh
 
       - name: Compress + checksum
-        id: artifact
         run: |
-          IMG="$(find . -maxdepth 4 -name '*.img' | head -1)"
-          xz -T0 -9 "$IMG"
-          sha256sum "${IMG}.xz" > "${IMG}.xz.sha256"
-          echo "path=${IMG}.xz" >> "$GITHUB_OUTPUT"
+          IMG=$(find . -path ./src/CustomPiOS -prune -o -name '*.img' -print | head -1)
+          test -n "$IMG" || { echo "no .img produced"; exit 1; }
+          sudo xz -T0 -9 "$IMG"
+          sha256sum "${IMG}.xz" | tee "${IMG}.xz.sha256"
 
       - uses: actions/upload-artifact@v4
         with:

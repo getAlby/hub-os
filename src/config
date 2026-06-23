@@ -1,15 +1,13 @@
-# CustomPiOS distro config for Hub OS
-# See: https://github.com/guysoft/CustomPiOS
 export DIST_NAME=HubOS
 export DIST_VERSION=0.1.0
 
-# Modules applied in order. `base` pulls in the stock Raspberry Pi OS layer,
-# then our albyhub module bakes Alby Hub on top.
-export MODULES="base(network,albyhub)"
+# rpi-imager metadata
+export RPI_IMAGER_NAME="Alby Hub"
+export RPI_IMAGER_DESCRIPTION="Self-custodial Lightning wallet on your Pi. No full node, no manual install."
+export RPI_IMAGER_WEBSITE="https://albyhub.com"
 
-# Base image: Raspberry Pi OS Lite 64-bit, BOOKWORM (NOT Trixie).
-# Bookworm keeps the stable firstrun.sh first-boot mechanism, so Raspberry Pi
-# Imager's WiFi/SSH/user customization works reliably. Trixie's cloud-init path
-# is what silently dropped WiFi/SSH config during manual testing.
-export BASE_DISTRO=raspios_lite_arm64
-export BASE_ARCH=aarch64
+# Official Raspberry Pi OS Lite 64-bit (Bookworm) base
+export BASE_BOARD=raspberrypiarm64
+export BASE_ARCH=arm64
+
+export MODULES="base(network,albyhub)"
