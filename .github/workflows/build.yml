@@ -51,17 +51,15 @@ jobs:
           sudo xz -T0 -9 "$OUT"
           sudo sha256sum "${OUT}.xz" | sudo tee "${OUT}.xz.sha256"
           sudo chown "$(id -u):$(id -g)" "${OUT}.xz" "${OUT}.xz.sha256"
+          mkdir -p dist
+          mv "${OUT}.xz" "${OUT}.xz.sha256" dist/
       - uses: actions/upload-artifact@v4
         with:
           name: hub-os-image
-          path: |
-            **/*.img.xz
-            **/*.img.xz.sha256
+          path: dist/
 
       - name: Release (on tag)
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            **/*.img.xz
-            **/*.img.xz.sha256
+          files: dist/*
