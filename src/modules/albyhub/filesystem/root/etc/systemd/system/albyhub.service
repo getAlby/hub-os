@@ -8,6 +8,8 @@ Type=simple
 Restart=always
 RestartSec=1
 User=albyhub
+# Grant port-80 binding at runtime (file setcap caps don't survive the image build)
+AmbientCapabilities=CAP_NET_BIND_SERVICE
 ExecStart=/opt/albyhub/bin/albyhub
 # Cap CPU so the wallet never starves the rest of a small Pi
 CPUQuota=90%
