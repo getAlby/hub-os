@@ -1,0 +1,26 @@
+[Unit]
+Description=Alby Hub OS configuration service (captive-portal onboarding)
+Documentation=https://github.com/bumi/hub-os-config
+After=NetworkManager.service
+Wants=NetworkManager.service
+
+[Service]
+Type=simple
+# Wait for NetworkManager to finish startup (devices managed), and make sure the
+# WiFi radio is usable: a fresh Pi image often has wlan0 rfkill-soft-blocked, and
+# AP mode needs the radio on. The leading "-" makes each step non-fatal.
+# (The WiFi regulatory country that AP mode also requires is baked into the image
+# by the albyhub module's start_chroot_script — see ALBYHUB_WIFI_COUNTRY.)
+ExecStartPre=-/usr/sbin/rfkill unblock wifi
+ExecStartPre=-/usr/bin/nm-online -s -q -t 30
+ExecStartPre=-/usr/bin/nmcli radio wifi on
+ExecStart=/usr/local/bin/hub-os-config run
+Restart=on-failure
+RestartSec=5
+# Runs as root: needs nmcli, write access to /opt/albyhub/.env, and reboot.
+User=root
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

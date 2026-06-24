@@ -9,11 +9,15 @@ Lightning) with **zero manual install** — flash, boot, open
 Manually installing Alby Hub on a Pi means SSH + `curl | bash` + a signature
 prompt + systemd setup. This image bakes all of that in, so onboarding is just:
 
-1. Flash the image with **Raspberry Pi Imager 2.0+** (“Use custom”), set WiFi + password.
+1. Flash the image with **any** flasher — no customization needed.
 2. Insert the card, power on, wait ~2 min.
-3. Open `http://albyhub.local`, set a password, save your seed, open a channel.
+3. On your phone/laptop, join the **`albyhub-setup`** WiFi. A setup page opens
+   automatically (captive portal) — pick your home WiFi and confirm.
+4. The Pi reboots onto your network. Open `http://albyhub.local`, set a
+   password, save your seed, open a channel.
 
-No terminal. Tested target: Raspberry Pi Zero 2 W (512 MB) and up.
+No terminal, no Imager customization. Tested target: Raspberry Pi Zero 2 W
+(512 MB) and up.
 
 ## What's baked in (`src/modules/albyhub`)
 
@@ -25,13 +29,25 @@ No terminal. Tested target: Raspberry Pi Zero 2 W (512 MB) and up.
 - Port-80 binding via systemd `AmbientCapabilities`; `ld.so.conf.d` entry for the bundled libraries.
 - `gpu_mem=16` (frees ~48 MB) and `vm.swappiness=10` + 1 GB swap.
 - `avahi-daemon` for `albyhub.local`; default hostname `albyhub`.
+- **Captive-portal onboarding** ([`bumi/hub-os-config`](https://github.com/bumi/hub-os-config),
+  pinned by commit): on first boot with no internet it raises an open
+  `albyhub-setup` AP serving a setup page where the user picks their WiFi and a
+  few hub options, then reboots online. The same UI stays reachable afterwards
+  on `:8090`. Built from source for arm64 and staged into the image by CI.
 
-## What Imager handles at flash time (not baked)
+## First-boot onboarding (captive portal)
 
-WiFi credentials, SSH enable/key, user/password, locale/timezone, hostname —
-applied on first boot. **Use Raspberry Pi Imager 2.0 or newer** — older versions
-don't reliably apply customization to current Raspberry Pi OS (cloud-init), which
-silently drops the SSH/WiFi settings.
+No Imager customization is required. On first boot the device checks for
+internet; finding none, it broadcasts the open **`albyhub-setup`** WiFi and
+serves a captive portal on `192.168.4.1`. The user joins from a phone, the setup
+page opens automatically, they choose their home network, and the Pi reboots
+onto it. WiFi credentials are stored by NetworkManager and reconnect on boot.
+
+The hub stays off port 80 until the device is online (`albyhub-wait-online`, an
+`ExecStartPre` gate) so it never fights the setup portal for `:80`. A WiFi
+regulatory country (`ALBYHUB_WIFI_COUNTRY`, default `US`) is baked in — AP mode
+needs one set. SSH-based / Imager WiFi setup still works too: if WiFi is already
+configured, the portal never appears and the device boots straight online.
 
 ## Build
 
@@ -46,10 +62,10 @@ CI (`.github/workflows/build.yml`) builds on tag push and publishes
 ## Distribution
 
 Download the latest `HubOS-<ver>-arm64.img.xz` from the
-[latest GitHub release](https://github.com/getAlby/hub-os/releases/latest), then flash it with
-**Raspberry Pi Imager** ("Use custom") — or any flasher (Etcher, `dd`). Set your
-WiFi + hostname in Imager's customisation, write, boot, and open
-`http://albyhub.local`.
+[latest GitHub release](https://github.com/getAlby/hub-os/releases/latest), then
+flash it with **any** tool (Raspberry Pi Imager, Etcher, `dd`) — no
+customization step. Boot, join the `albyhub-setup` WiFi to configure your
+network, then open `http://albyhub.local`.
 
 ## Configuration
 
@@ -75,6 +91,6 @@ app auto-updater off entirely.
 
 ## Status
 
-Builds green in CI and boots on a Raspberry Pi Zero 2 W (setup screen serves on
-`:80`). Flash with **Raspberry Pi Imager 2.0+** so first-boot customization
-applies. Not yet tagged as a release.
+Builds green in CI and boots on a Raspberry Pi Zero 2 W (hub UI serves on `:80`).
+Captive-portal onboarding (`bumi/hub-os-config`) is newly integrated and still
+being validated on hardware. Not yet tagged as a release.

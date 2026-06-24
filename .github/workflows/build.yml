@@ -36,6 +36,27 @@ jobs:
             "https://downloads.raspberrypi.org/raspios_lite_arm64/images/$BASEDIR/$FILE"
           ls -la src/image-raspberrypiarm64/
 
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: Build + stage hub-os-config (captive-portal onboarding)
+        run: |
+          set -euo pipefail
+          # Single source of truth for the repo + pinned commit.
+          source src/modules/albyhub/config
+          git clone --quiet "$HUBOSCONFIG_REPO" /tmp/hub-os-config
+          git -C /tmp/hub-os-config checkout --quiet "$HUBOSCONFIG_COMMIT"
+          ( cd /tmp/hub-os-config \
+            && CGO_ENABLED=0 GOOS=linux GOARCH=arm64 \
+               go build -trimpath -ldflags "-s -w -X main.version=$HUBOSCONFIG_COMMIT" \
+               -o /tmp/hub-os-config-bin ./cmd/hub-os-config )
+          DEST=src/modules/albyhub/filesystem/root/usr/local/bin
+          mkdir -p "$DEST"
+          install -m 0755 /tmp/hub-os-config-bin "$DEST/hub-os-config"
+          ls -l "$DEST/hub-os-config"
+
       - name: Build image
         run: sudo bash ./build.sh
 

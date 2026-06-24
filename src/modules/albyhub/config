@@ -13,3 +13,20 @@ export ALBYHUB_HOME="/opt/albyhub"
 export ALBYHUB_USER="albyhub"
 export ALBYHUB_SWAP_MB="1024"
 export ALBYHUB_HOSTNAME="albyhub"
+
+# --- captive-portal onboarding (bumi/hub-os-config) ---
+# A small Go service that, on first boot with no internet, raises an open WiFi
+# AP ("albyhub-setup") hosting a captive portal where the user picks their WiFi
+# and sets a few hub options, then reboots online. Pinned to a commit because
+# the upstream repo has no tagged releases yet. The arm64 binary is built on the
+# CI host and staged into the overlay before the image build (see
+# .github/workflows/build.yml); a local build without that step just ships
+# without onboarding (the chroot script skips it gracefully).
+export HUBOSCONFIG_REPO="https://github.com/bumi/hub-os-config"
+export HUBOSCONFIG_COMMIT="1c7203303cf01ee1e5af309ba4861db5bf151332"
+
+# WiFi regulatory domain (ISO 3166-1 alpha-2). REQUIRED for the setup AP to come
+# up — a fresh image leaves the radio in the restrictive "world" domain, which
+# blocks AP mode. Channel 6 @ 2.4GHz is permitted in essentially every domain,
+# so this just unblocks the radio; installers elsewhere can change it.
+export ALBYHUB_WIFI_COUNTRY="US"

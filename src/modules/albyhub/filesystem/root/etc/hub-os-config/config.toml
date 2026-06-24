@@ -1,0 +1,18 @@
+# hub-os-config settings for the Alby Hub image.
+# Most values are upstream defaults (see bumi/hub-os-config config.toml.example);
+# only the entries that matter for this image are pinned here explicitly.
+
+[access_point]
+# Open setup network the user joins to reach the captive portal.
+ssid = "albyhub-setup"
+
+[web]
+# Port the config UI listens on once online (Normal Mode). Alby Hub itself runs
+# on :80 in this image, so the config UI sits alongside it on :8090
+# (http://albyhub.local:8090). It does NOT collide with the hub.
+normal_port = 8090
+
+[paths]
+# The Advanced section of the portal edits these keys in the hub's env file,
+# preserving everything else.
+albyhub_env = "/opt/albyhub/.env"

@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Block until the device has working internet, so Alby Hub doesn't claim port 80
+# while hub-os-config is serving its setup captive portal there (also :80, via
+# the AP gateway). Used as ExecStartPre of albyhub.service.
+#
+# - Fresh image, no WiFi: blocks here indefinitely. The hub never binds :80, so
+#   the captive portal owns it. Once the user connects (and the device reboots
+#   online), this returns immediately and the hub starts.
+# - No onboarding installed (local build without the hub-os-config binary):
+#   nothing else wants :80, so skip the wait entirely and let the hub start now.
+set -u
+
+# Only gate when the captive-portal service is actually present.
+if [ ! -x /usr/local/bin/hub-os-config ]; then
+  exit 0
+fi
+
+URL="https://getalby.com/api/internal/info"
+until curl -fsS --max-time 5 -o /dev/null "$URL"; do
+  sleep 5
+done

@@ -17,6 +17,10 @@ unpack /filesystem/root /
 # --- dependencies ---
 apt-get update
 apt-get install -y --no-install-recommends bzip2 ca-certificates gnupg avahi-daemon libcap2-bin unattended-upgrades
+# Captive-portal onboarding deps: NetworkManager (already default on RPi OS, but
+# pin it), its dnsmasq backend for AP-mode DHCP/DNS, and the radio tools the
+# hub-os-config systemd unit calls (rfkill / iw / nmcli).
+apt-get install -y --no-install-recommends network-manager dnsmasq-base rfkill iw
 
 # --- dedicated, unprivileged service user ---
 if ! id -u "$ALBYHUB_USER" >/dev/null 2>&1; then
@@ -82,6 +86,31 @@ sed -i "s/127.0.1.1.*/127.0.1.1\t${ALBYHUB_HOSTNAME}/" /etc/hosts || true
 
 # --- auto-update: make the weekly updater executable ---
 chmod +x "$ALBYHUB_HOME/autoupdate.sh"
+
+# --- captive-portal onboarding (bumi/hub-os-config) ---
+# The :80 gate helper always ships; it self-disables when the onboarding binary
+# is absent (see the script), so local builds without staging still work.
+chmod +x /usr/local/bin/albyhub-wait-online
+
+# WiFi regulatory country — REQUIRED for the setup AP. Use the RPi-blessed path
+# when available (handles rfkill + persistence), else write the legacy regdb.
+if command -v raspi-config >/dev/null 2>&1; then
+  raspi-config nonint do_wifi_country "$ALBYHUB_WIFI_COUNTRY" || true
+else
+  echo "REGDOMAIN=$ALBYHUB_WIFI_COUNTRY" > /etc/default/crda
+fi
+
+# The arm64 binary is staged into the overlay by CI (see build.yml). If present,
+# finish wiring it up; otherwise skip onboarding so the build still succeeds.
+if [ -x /usr/local/bin/hub-os-config ]; then
+  install -d -m 0755 /var/lib/hub-os-config   # state.json lives here
+  systemctl_if_exists enable NetworkManager.service
+  systemctl_if_exists enable hub-os-config.service
+else
+  echo "WARN: /usr/local/bin/hub-os-config not staged — image ships WITHOUT captive-portal onboarding" >&2
+  rm -f /etc/systemd/system/hub-os-config.service
+  rm -rf /etc/hub-os-config
+fi
 
 # --- enable services (start happens on first boot, not in chroot) ---
 systemctl_if_exists enable albyhub.service

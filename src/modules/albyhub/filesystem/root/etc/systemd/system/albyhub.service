@@ -10,6 +10,15 @@ RestartSec=1
 User=albyhub
 # Grant port-80 binding at runtime (file setcap caps don't survive the image build)
 AmbientCapabilities=CAP_NET_BIND_SERVICE
+# Don't claim :80 until the device is actually online. On a fresh image with no
+# WiFi, hub-os-config serves its setup captive portal on :80 (via the AP gateway)
+# — the hub must stay off that port until the user has connected. Once online the
+# probe returns immediately and the hub starts normally. wait-online is a no-op
+# if hub-os-config isn't installed (local builds without the onboarding binary).
+ExecStartPre=/usr/local/bin/albyhub-wait-online
+# wait-online may block indefinitely on a never-configured device; that's fine —
+# the captive portal owns :80 meanwhile. Don't let the start timeout kill it.
+TimeoutStartSec=infinity
 ExecStart=/opt/albyhub/bin/albyhub
 # Cap CPU so the wallet never starves the rest of a small Pi
 CPUQuota=90%

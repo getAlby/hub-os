@@ -1,5 +1,7 @@
 # build artifacts
 workspace/
+# hub-os-config binary staged into the overlay by CI (built from source, not committed)
+src/modules/albyhub/filesystem/root/usr/local/bin/hub-os-config
 *.img
 *.img.xz
 *.img.zip
