@@ -13,3 +13,24 @@ export ALBYHUB_HOME="/opt/albyhub"
 export ALBYHUB_USER="albyhub"
 export ALBYHUB_SWAP_MB="1024"
 export ALBYHUB_HOSTNAME="albyhub"
+
+# --- WiFi onboarding: balena wifi-connect ---
+# The de-facto standard first-boot WiFi captive portal for headless Linux devices.
+# On first boot with no internet it raises an open AP ("albyhub-setup") hosting a
+# portal where the user picks their WiFi; then it writes a NetworkManager profile
+# and exits, and Alby Hub comes up at albyhub.local. WiFi-only by design — every
+# hub setting is configured in Alby Hub's own onboarding UI once it is online.
+#
+# Pinned release, downloaded + checksum-verified in the chroot (same reproducible
+# pattern as the Alby Hub binary above). balena publishes no checksum manifest, so
+# the SHA-256s are pinned here directly.
+export WIFICONNECT_VERSION="v4.11.84"
+export WIFICONNECT_SHA256_BIN="413d70e6d1c1366cbe2b32555e8476f3e92878178ed1b9c82205985f055f1936"
+export WIFICONNECT_SHA256_UI="e57a3cec559729516decf892beb1e7f191b23e71b2e13bcd43d36b980034ffbe"
+
+# WiFi regulatory domain (ISO 3166-1 alpha-2). REQUIRED for the setup AP to come
+# up — a fresh image sits in the restrictive "world" (00) domain, which flags
+# 2.4GHz channels NO-IR and blocks AP beaconing. wifi-connect does not set a
+# regdom itself, so one must be baked in. Channel 6 @ 2.4GHz is permitted in
+# essentially every domain; installers elsewhere can change it.
+export ALBYHUB_WIFI_COUNTRY="US"

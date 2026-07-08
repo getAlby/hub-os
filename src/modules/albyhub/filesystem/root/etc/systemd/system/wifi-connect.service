@@ -1,0 +1,28 @@
+[Unit]
+Description=WiFi onboarding captive portal (balena wifi-connect)
+Documentation=https://github.com/balena-os/wifi-connect
+After=NetworkManager.service
+Wants=NetworkManager.service
+# Run to completion before the hub starts. wifi-connect serves its portal on :80
+# (same port as the hub) and exits once WiFi is configured, so ordering it before
+# albyhub.service means the hub only claims :80 after onboarding is done — no port
+# race, no separate wait gate needed.
+Before=albyhub.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# AP mode needs the radio usable: a fresh Pi image often has wlan0 rfkill-soft-
+# blocked. (The regulatory country AP mode also requires is baked into the image
+# by the albyhub module — see ALBYHUB_WIFI_COUNTRY.) Leading "-" = non-fatal.
+ExecStartPre=-/usr/sbin/rfkill unblock wifi
+ExecStartPre=-/usr/bin/nm-online -s -q -t 30
+ExecStartPre=-/usr/bin/nmcli radio wifi on
+ExecStart=/usr/local/bin/albyhub-wifi-connect
+# The portal blocks until the user picks a network; never time it out.
+TimeoutStartSec=infinity
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

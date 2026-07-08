@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Raise balena wifi-connect's captive portal ("albyhub-setup") on first boot when
+# the device has no internet, so the user joins their home WiFi with no computer.
+# Once they pick a network, wifi-connect writes a NetworkManager profile and exits;
+# NM brings the link up and Alby Hub (also :80) starts. A no-op when already online,
+# so normal reboots pass straight through.
+set -u
+
+# Already online? Nothing to do — let the boot continue to the hub.
+if curl -fsS --max-time 5 -o /dev/null https://getalby.com/api/internal/info; then
+  exit 0
+fi
+
+exec /usr/local/sbin/wifi-connect \
+  --portal-ssid albyhub-setup \
+  --ui-directory /usr/local/share/wifi-connect/ui

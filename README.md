@@ -9,11 +9,16 @@ Lightning) with **zero manual install** — flash, boot, open
 Manually installing Alby Hub on a Pi means SSH + `curl | bash` + a signature
 prompt + systemd setup. This image bakes all of that in, so onboarding is just:
 
-1. Flash the image with **Raspberry Pi Imager 2.0+** (“Use custom”), set WiFi + password.
-2. Insert the card, power on, wait ~2 min.
+1. Flash the image with **Raspberry Pi Imager 2.0+** (“Use custom”). Setting WiFi
+   is optional — you can also configure it on first boot (step 2).
+2. Insert the card, power on, wait ~2 min. If the Pi has no internet yet, it
+   raises an open WiFi network **`albyhub-setup`** — join it from your phone,
+   pick your home WiFi, and enter the password. (Powered by
+   [balena wifi-connect](https://github.com/balena-os/wifi-connect).)
 3. Open `http://albyhub.local`, set a password, save your seed, open a channel.
 
-No terminal. Tested target: Raspberry Pi Zero 2 W (512 MB) and up.
+No terminal, no computer needed for WiFi. Tested target: Raspberry Pi Zero 2 W
+(512 MB) and up.
 
 ## What's baked in (`src/modules/albyhub`)
 
@@ -24,14 +29,20 @@ No terminal. Tested target: Raspberry Pi Zero 2 W (512 MB) and up.
   with a low-resource default configuration).
 - Port-80 binding via systemd `AmbientCapabilities`; `ld.so.conf.d` entry for the bundled libraries.
 - `gpu_mem=16` (frees ~48 MB) and `vm.swappiness=10` + 1 GB swap.
-- `avahi-daemon` for `albyhub.local`; default hostname `albyhub`.
+- `avahi-daemon` for `albyhub.local`; hostname pinned to `albyhub`.
+- **WiFi onboarding** via `wifi-connect` (pinned release, checksum-verified):
+  `wifi-connect.service` raises the `albyhub-setup` portal on first boot only if
+  the device is offline, then exits so the hub takes `:80`. NetworkManager +
+  `dnsmasq-base` back it; a WiFi regulatory domain (`ALBYHUB_WIFI_COUNTRY`) is
+  baked in because AP mode needs one.
 
 ## What Imager handles at flash time (not baked)
 
-WiFi credentials, SSH enable/key, user/password, locale/timezone, hostname —
-applied on first boot. **Use Raspberry Pi Imager 2.0 or newer** — older versions
-don't reliably apply customization to current Raspberry Pi OS (cloud-init), which
-silently drops the SSH/WiFi settings.
+SSH enable/key, user/password, locale/timezone — applied on first boot. WiFi is
+**optional** here: set it in Imager to skip the portal, or leave it blank and use
+the `albyhub-setup` portal on first boot. **Use Raspberry Pi Imager 2.0 or newer**
+— older versions don't reliably apply customization to current Raspberry Pi OS
+(cloud-init), which silently drops the SSH/WiFi settings.
 
 ## Build
 
@@ -75,6 +86,7 @@ app auto-updater off entirely.
 
 ## Status
 
-Builds green in CI and boots on a Raspberry Pi Zero 2 W (setup screen serves on
-`:80`). Flash with **Raspberry Pi Imager 2.0+** so first-boot customization
-applies. Not yet tagged as a release.
+Builds green in CI and boots on a Raspberry Pi Zero 2 W. On first boot with no
+internet, the `albyhub-setup` WiFi portal comes up; once connected, the hub
+serves on `:80` at `albyhub.local`. Flash with **Raspberry Pi Imager 2.0+** so
+first-boot customization applies. Not yet tagged as a release.
