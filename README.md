@@ -9,8 +9,11 @@ Lightning) with **zero manual install** — flash, boot, open
 Manually installing Alby Hub on a Pi means SSH + `curl | bash` + a signature
 prompt + systemd setup. This image bakes all of that in, so onboarding is just:
 
-1. Flash the image with **Raspberry Pi Imager 2.0+** (“Use custom”). Setting WiFi
-   is optional — you can also configure it on first boot (step 2).
+1. Flash the image with **Raspberry Pi Imager 2.0+** (“Use custom”) and set a
+   user + password in the customization dialog (required — Raspberry Pi OS won't
+   finish first boot without one). Setting WiFi there is optional — you can also
+   configure it on first boot (step 2). Leave the hostname at its default so
+   `albyhub.local` works.
 2. Insert the card, power on, wait ~2 min. If the Pi has no internet yet, it
    raises an open WiFi network **`albyhub-setup`** — join it from your phone,
    pick your home WiFi, and enter the password. (Powered by
@@ -29,7 +32,8 @@ No terminal, no computer needed for WiFi. Tested target: Raspberry Pi Zero 2 W
   with a low-resource default configuration).
 - Port-80 binding via systemd `AmbientCapabilities`; `ld.so.conf.d` entry for the bundled libraries.
 - `gpu_mem=16` (frees ~48 MB) and `vm.swappiness=10` + 1 GB swap.
-- `avahi-daemon` for `albyhub.local`; hostname pinned to `albyhub`.
+- `avahi-daemon` for `albyhub.local`; default hostname `albyhub` (Imager's
+  hostname customization can still override it — leave it default).
 - **WiFi onboarding** via `wifi-connect` (pinned release, checksum-verified):
   `wifi-connect.service` raises the `albyhub-setup` portal on first boot only if
   the device is offline, then exits so the hub takes `:80`. NetworkManager +
@@ -38,9 +42,9 @@ No terminal, no computer needed for WiFi. Tested target: Raspberry Pi Zero 2 W
 
 ## What Imager handles at flash time (not baked)
 
-SSH enable/key, user/password, locale/timezone — applied on first boot. WiFi is
-**optional** here: set it in Imager to skip the portal, or leave it blank and use
-the `albyhub-setup` portal on first boot. **Use Raspberry Pi Imager 2.0 or newer**
+SSH enable/key, user/password (required), locale/timezone, hostname — applied on
+first boot. WiFi is **optional** here: set it in Imager to skip the portal, or
+leave it blank and use the `albyhub-setup` portal on first boot. **Use Raspberry Pi Imager 2.0 or newer**
 — older versions don't reliably apply customization to current Raspberry Pi OS
 (cloud-init), which silently drops the SSH/WiFi settings.
 

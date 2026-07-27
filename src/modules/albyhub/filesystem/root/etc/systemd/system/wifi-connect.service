@@ -15,8 +15,9 @@ RemainAfterExit=yes
 # AP mode needs the radio usable: a fresh Pi image often has wlan0 rfkill-soft-
 # blocked. (The regulatory country AP mode also requires is baked into the image
 # by the albyhub module — see ALBYHUB_WIFI_COUNTRY.) Leading "-" = non-fatal.
+# No nm-online wait here: the wrapper itself waits for NM when a connection is
+# configured, so already-onboarded devices don't pay a serialized boot delay.
 ExecStartPre=-/usr/sbin/rfkill unblock wifi
-ExecStartPre=-/usr/bin/nm-online -s -q -t 30
 ExecStartPre=-/usr/bin/nmcli radio wifi on
 ExecStart=/usr/local/bin/albyhub-wifi-connect
 # The portal blocks until the user picks a network; never time it out.

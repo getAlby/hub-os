@@ -1,14 +1,38 @@
 #!/usr/bin/env bash
-# Raise balena wifi-connect's captive portal ("albyhub-setup") on first boot when
-# the device has no internet, so the user joins their home WiFi with no computer.
-# Once they pick a network, wifi-connect writes a NetworkManager profile and exits;
-# NM brings the link up and Alby Hub (also :80) starts. A no-op when already online,
-# so normal reboots pass straight through.
+# Raise balena wifi-connect's captive portal ("albyhub-setup") when the device
+# cannot join any network, so the user configures WiFi with no computer. Once
+# they pick a network, wifi-connect writes a NetworkManager profile and exits;
+# NM brings the link up and Alby Hub (also :80) starts.
+#
+# The gate is "did NetworkManager connect a device?", NOT "is the internet
+# reachable": a configured hub must never be flipped back into setup mode by an
+# ISP outage, DNS hiccup, or an offline LAN — the portal is only for devices
+# that have nothing to join (fresh image, wrong password, moved house).
 set -u
 
-# Already online? Nothing to do — let the boot continue to the hub.
-if curl -fsS --max-time 5 -o /dev/null https://getalby.com/api/internal/info; then
-  exit 0
+nm_connected() {
+  # Any device (wlan0, eth0, …) holding an active connection counts — the hub
+  # can serve albyhub.local on a LAN regardless of internet reachability.
+  nmcli -t -f DEVICE,STATE device status 2>/dev/null | grep -q ':connected$'
+}
+
+has_config() {
+  # A saved WiFi profile or a plugged-in ethernet device means NM has something
+  # to bring up — give it time before concluding onboarding is needed.
+  nmcli -t -f TYPE connection show 2>/dev/null | grep -q '802-11-wireless' \
+    || nmcli -t -f TYPE,STATE device status 2>/dev/null | grep -q '^ethernet:connecting'
+}
+
+nm_connected && exit 0
+
+# Fresh image with nothing configured: no point waiting, go straight to setup.
+# Otherwise (profile exists — e.g. Imager-provisioned WiFi still associating on
+# first boot, or a normal reboot) give NM up to 90s to bring the link up.
+if has_config; then
+  for _ in $(seq 1 18); do
+    sleep 5
+    nm_connected && exit 0
+  done
 fi
 
 exec /usr/local/sbin/wifi-connect \
