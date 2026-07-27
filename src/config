@@ -1,6 +1,11 @@
 export DIST_NAME=HubOS
 export DIST_VERSION=0.1.0
 
+# Hostname the device advertises (avahi -> albyhub.local). Without this, the base
+# module defaults the hostname to the lowercased DIST_NAME ("hubos"), which would
+# break the albyhub.local onboarding story.
+export BASE_OVERRIDE_HOSTNAME=albyhub
+
 # rpi-imager metadata
 export RPI_IMAGER_NAME="Alby Hub"
 export RPI_IMAGER_DESCRIPTION="Self-custodial Lightning wallet on your Pi. No full node, no manual install."

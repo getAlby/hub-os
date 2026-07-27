@@ -17,6 +17,10 @@ unpack /filesystem/root /
 # --- dependencies ---
 apt-get update
 apt-get install -y --no-install-recommends bzip2 ca-certificates gnupg avahi-daemon libcap2-bin unattended-upgrades
+# WiFi onboarding deps: NetworkManager (already default on RPi OS, but pin it),
+# its dnsmasq backend which wifi-connect drives for the AP's DHCP/DNS, and
+# rfkill, which the wifi-connect unit calls to unblock the radio.
+apt-get install -y --no-install-recommends network-manager dnsmasq-base rfkill
 
 # --- dedicated, unprivileged service user ---
 if ! id -u "$ALBYHUB_USER" >/dev/null 2>&1; then
@@ -83,7 +87,40 @@ sed -i "s/127.0.1.1.*/127.0.1.1\t${ALBYHUB_HOSTNAME}/" /etc/hosts || true
 # --- auto-update: make the weekly updater executable ---
 chmod +x "$ALBYHUB_HOME/autoupdate.sh"
 
+# --- WiFi onboarding: balena wifi-connect ---
+# Download the pinned release (binary + web UI) and verify checksums, same
+# reproducible pattern as the Alby Hub binary above. The arm64 asset matches the
+# image arch, so it installs straight into the (qemu) chroot. WiFi-only: all hub
+# settings live in Alby Hub's own onboarding UI once the device is online.
+WC_TMP="$(mktemp -d)"
+WC_BASE="https://github.com/balena-os/wifi-connect/releases/download/${WIFICONNECT_VERSION}"
+wget -q -O "$WC_TMP/wifi-connect.tar.gz"    "$WC_BASE/wifi-connect-aarch64-unknown-linux-gnu.tar.gz"
+wget -q -O "$WC_TMP/wifi-connect-ui.tar.gz" "$WC_BASE/wifi-connect-ui.tar.gz"
+echo "$WIFICONNECT_SHA256_BIN  $WC_TMP/wifi-connect.tar.gz"    | sha256sum -c -
+echo "$WIFICONNECT_SHA256_UI  $WC_TMP/wifi-connect-ui.tar.gz" | sha256sum -c -
+tar -xzf "$WC_TMP/wifi-connect.tar.gz" -C "$WC_TMP"
+install -m 0755 "$WC_TMP/wifi-connect" /usr/local/sbin/wifi-connect
+install -d /usr/local/share/wifi-connect/ui
+tar -xzf "$WC_TMP/wifi-connect-ui.tar.gz" -C /usr/local/share/wifi-connect/ui
+rm -rf "$WC_TMP"
+chmod +x /usr/local/bin/albyhub-wifi-connect
+
+# WiFi regulatory country — REQUIRED for the setup AP (world/00 domain flags
+# 2.4GHz NO-IR and blocks AP mode). Bake it as a cfg80211 module option, which
+# the kernel applies deterministically at module load — no live radio needed, so
+# it works in the build chroot. Additionally try the RPi-blessed raspi-config
+# path when available (persists via cmdline.txt too); its failure is non-fatal
+# because the modprobe.d file above is the guarantee.
+cat > /etc/modprobe.d/cfg80211.conf <<EOF
+options cfg80211 ieee80211_regdom=$ALBYHUB_WIFI_COUNTRY
+EOF
+if command -v raspi-config >/dev/null 2>&1; then
+  raspi-config nonint do_wifi_country "$ALBYHUB_WIFI_COUNTRY" || true
+fi
+
 # --- enable services (start happens on first boot, not in chroot) ---
+systemctl_if_exists enable NetworkManager.service
+systemctl_if_exists enable wifi-connect.service
 systemctl_if_exists enable albyhub.service
 systemctl_if_exists enable avahi-daemon.service
 systemctl_if_exists enable albyhub-update.timer
